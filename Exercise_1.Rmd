@@ -1,0 +1,112 @@
+---
+title: "Visualization in R: Exercise 1"
+author: "Andrea Batch"
+date: "August 10, 2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+
+#You must change this!
+WORKING_DIRECTORY <- 'CHANGE THIS TO YOUR WORKING DIRECTORY'
+
+#Set working directory (also do this for knit)
+setwd(WORKING_DIRECTORY)
+knitr::opts_knit$set(root.dir = WORKING_DIRECTORY)
+
+knitr::opts_chunk$set(echo = TRUE)
+
+#Load the ggplot2 package
+library(ggplot2)
+```
+
+## Acquire dataset
+
+We want to start by loading our dataset. We will use the 2nd Quarter 2020 (Advance Estimate) and Annual Update release as downloaded from the BEA site.
+
+If we look at the data, we notice that we will need to skip some rows--4 rows--at the beginning of the file, or else we will get an error, so we use the "skip" option.
+
+We also observe that loading it with headers creates variable names out of the years, and appends name with number as "[year].[#]" if there is more than one column for the year. We can use this to rename our variables.
+
+```{r gdp}
+data <- read.csv('data/national_gdp.csv', skip=4)
+#Now look at the data
+data
+
+# Use the firstrow to rename the columns
+new_names_year <- unlist( #unlist unravels list structure with depth 1
+  lapply( #lapply applies a function to a list
+    strsplit(names(data), split='.', fixed=T), #strsplit will return a list of vectors split from input vector on "." 
+    function(x){ #this is the function being applied to strsplit return list by lapply
+      return(x[1]) #return the first item ofthe vector--the year, preceded by "X" (or "Line"/"X" for first 2 columns)
+  })
+)
+
+#Join new names with the first row 
+new_names_qtrs <- paste0(new_names_year, as.character(unlist(data[1,])))
+
+names(data) <- new_names_qtrs
+
+#delete the first row!
+gdp_raw <- data[-c(1), ]
+gdp_raw
+```
+
+## Reshape the data for visualization
+
+We have already made one parsing decision that has reshaped our data by omission with our skip option.
+
+Now we are going to have to change it into a "clean" format: Every column is a variable name, every row is an observation.
+
+We can do this more easily with the "reshape2" library.
+
+```{r reshape}
+library(reshape2)
+# Melt to long format with line number and component as ID variables
+gdp_long <- melt(gdp_raw, id.vars=c('LineLine', 'X'))
+
+# Now is a good time to rename our variables
+names(gdp_long) <- c('Line', 'Component', 'Period', 'Dollars')
+
+# Remove the "X" from the period
+gdp_long$Period <- gsub('X', '', gdp_long$Period, fixed = T)
+
+# For now, we really only want top line GDP--line 1.
+# We make a new data.frame from the old, ensuring our data types are correct.
+gdp <- data.frame(
+  Period = as.character(gdp_long[gdp_long$Line==1,]$Period), 
+  Dollars = as.numeric(gdp_long[gdp_long$Line==1,]$Dollars) 
+)
+
+```
+
+## Creating Plots
+
+Now that we have reshaped our data, let's look at the base R "plot" function visualization:
+
+```{r baseplot}
+plot(gdp$Period, gdp$Dollars)
+```
+
+## Creating Plots and Layers with ggplot2
+
+The base plot function returns something that's not so pretty, right?
+
+Let's take a look at the steps involved in plotting with ggplot
+
+```{r ggplot_base}
+#Create the base layer
+p <- ggplot(gdp)
+
+#At first, this is just an empty canvas
+p
+```
+
+
+```{r ggplot_mark}
+# We need to add our visual marks (and marks' channel specifications), and graph themes and settings, layer by layer.
+p <- p + geom_line(aes(x=Period, y=Dollars, group=1))
+
+p
+
+```
