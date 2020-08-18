@@ -1,5 +1,5 @@
 ---
-title: "Visualization in R: Exercise 1"
+title: "Visualization in R Exercise 1: ggplot2"
 author: "Andrea Batch"
 date: "August 10, 2020"
 output: html_document
@@ -238,14 +238,14 @@ So let's just bring everything together in one call.
 ```{r finale}
 p <- ggplot(gdp, aes(x=Period, y=Dollars, group=1)) + # our data and mapping layer
   annotate("rect", xmin = '2007Q4', xmax = '2009Q2', ymin = 0, ymax = 25000, color = "orange", fill = "orange", size = 0.5, alpha=0.4) + # Our annotation layers go first!
-  annotate("pointrange", x = '2020Q2', y = 20000, xmin = '2020Q1', xmax = '2020Q2', ymin = 0, ymax = 25000, color = "red", size = 1.5, alpha=0.4) +
-  geom_line(aes(size = Dollars/Population), color = "#FC4E07") +  # Our two geom line (mark) layers
+  annotate("pointrange", x = '2020Q2', y = 20000, xmin = '2020Q1', xmax = '2020Q2', ymin = 0, ymax = 25000, color = "red", size = 1.5, alpha=.75) +
+  geom_line(aes(size = Dollars/Population), color = "#FC4E07", alpha = 0.5) +  # Our two geom line (mark) layers
   geom_line(size = 1.05) +
   stat_smooth(method = "loess") + # Our stats layer 
   scale_y_continuous(labels=scales::dollar_format()) +  # Use the "dollar_format()" function from scales (ggplot dep'cy)
   scale_x_discrete(breaks = dates_to_show) + # Use the dates_to_show var we defined above to skip 20 quarters
-  geom_text(data=annotation, aes( x=Period, y=Dollars, label=label),   #Add our text annotations 
-            color="black", size=3 , angle=45,                          #Add last so it is on top of all other marks!
+  geom_text(data=annotation, aes( x=Period, y=Dollars, label=label),   #Add our text annotations AFTER all other
+            color="black", size=3 , angle=45,                          #  geoms so it is on top of all other marks
             fontface="bold", hjust = 1) + 
   theme_minimal() +                                      #Wrap up with our themes. Minimal view theme must come first!
   labs(title = "Nominal Gross Domestic Product",         #Add chart title, subtitle

@@ -1,0 +1,168 @@
+---
+title: 'Visualization in R Exercise 2: ggvis'
+author: "Andrea Batch"
+date: "August 18, 2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+
+#You must change this!
+WORKING_DIRECTORY <- 'CHANGE THIS TO YOUR WORKING DIRECTORY (top level folder where you cloned git repo)'
+
+#Set working directory (also do this for knit)
+setwd(WORKING_DIRECTORY)
+knitr::opts_knit$set(root.dir = WORKING_DIRECTORY)
+
+knitr::opts_chunk$set(echo = TRUE)
+
+#Load the ggplot2 package
+library(ggvis)
+```
+
+
+## Acquire dataset
+
+We want to start by loading our dataset. We will use the 2nd Quarter 2020 (Advance Estimate) and Annual Update release as downloaded from the BEA site.
+
+If we look at the data, we notice that we will need to skip some rows--4 rows--at the beginning of the file, or else we will get an error, so we use the "skip" option.
+
+We also observe that loading it with headers creates variable names out of the years, and appends name with number as "[year].[#]" if there is more than one column for the year. We can use this to rename our variables.
+
+```{r gdp}
+data <- read.csv('data/national_gdp.csv', skip=4)
+#Now look at the data
+data
+
+# Use the firstrow to rename the columns
+new_names_year <- unlist( #unlist unravels list structure with depth 1
+  lapply( #lapply applies a function to a list
+    strsplit(names(data), split='.', fixed=T), #strsplit will return a list of vectors split from input vector on "." 
+    function(x){ #this is the function being applied to strsplit return list by lapply
+      return(x[1]) #return the first item ofthe vector--the year, preceded by "X" (or "Line"/"X" for first 2 columns)
+  })
+)
+
+#Join new names with the first row 
+new_names_qtrs <- paste0(new_names_year, as.character(unlist(data[1,])))
+
+names(data) <- new_names_qtrs
+
+#delete the first row!
+gdp_raw <- data[-c(1), ]
+gdp_raw
+```
+
+## Just for fun, let's also get quarterly population estimates.
+```{r popdata}
+pop <- read.csv('data/national_population.csv')
+
+pop$Period <- paste0(substr(pop$DATE, 1, 4), 'Q', round(as.numeric(substr(pop$DATE, 6, 7))/3)+1)
+
+pop
+
+```
+
+## Reshape the data for visualization
+
+We have already made one parsing decision that has reshaped our data by omission with our skip option.
+
+Now we are going to have to change it into a "clean" format: Every column is a variable name, every row is an observation.
+
+We can do this more easily with the "reshape2" library.
+
+```{r reshape}
+library(reshape2)
+# Melt to long format with line number and component as ID variables
+gdp_long <- melt(gdp_raw, id.vars=c('LineLine', 'X'))
+
+# Now is a good time to rename our variables
+names(gdp_long) <- c('Line', 'Component', 'Period', 'Dollars')
+
+# Remove the "X" from the period
+gdp_long$Period <- gsub('X', '', gdp_long$Period, fixed = T)
+
+# For now, we really only want top line GDP--line 1.
+# We make a new data.frame from the old, ensuring our data types are correct.
+
+# Also, we can add our pop data in now; I have been kind and set it up so that the dates are the same, but usually you would want to use a join to make sure the dates match for each row.
+
+gdp <- data.frame(
+  Period = as.character(gdp_long[gdp_long$Line==1,]$Period), 
+  Dollars = as.numeric(gdp_long[gdp_long$Line==1,]$Dollars),
+  Population = pop$Population
+)
+
+gdp
+
+```
+
+```{r ggvis_slide_demo}
+
+getTooltipVals <- function(d){
+   #Uses HTML
+  return(paste0('Species: ', d$Species, '<br>Sepal Length: ', d$Sepal.Length, '<br>Sepal Width: ', d$Sepal.Width))
+}
+
+p_iris <- iris %>% 
+  ggvis(x = ~Sepal.Length, y = ~Sepal.Width, fill = ~Species) %>%
+	layer_points() %>% 
+	scale_numeric("x") %>% 
+	scale_numeric("y")%>% 
+  add_tooltip(function(d){
+    return(getTooltipVals(d))
+    }) #Use HTML
+
+p_iris_smooth <- iris %>% 
+  ggvis(x = ~Sepal.Length, y = ~Sepal.Width) %>%
+	layer_points() %>% 
+  layer_smooths(span = 0.3, stroke := "red") %>%
+	layer_model_predictions(model = "lm", se = TRUE) %>% 
+	scale_numeric("x", trans = "log") %>% 
+	scale_numeric("y", trans = "log") %>% 
+  add_tooltip(getTooltipVals)
+
+
+
+
+```
+
+```{r modifying_ggplot}
+annotation <- data.frame(
+   Period = c("2007Q4","2009Q2", "2020Q2"),
+   Dollars = c(20000,10000, 25000),
+   label = c("Start of G.R.", "End of G.R.", "COVID Recession")
+)
+
+
+add_title <- function(vis, ..., x_lab = "X units", title = "Plot Title") 
+{
+  add_axis(vis, "x", title = x_lab) %>% 
+    add_axis("x", orient = "top", ticks = 0, title = title,
+             properties = axis_props(
+               axis = list(stroke = "white"),
+               labels = list(fontSize = 0)
+             ), ...)
+}
+
+p <- ggvis(gdp, x=~Period, y=~Dollars) %>% # our data and mapping layer
+#  annotate("rect", xmin = '2007Q4', xmax = '2009Q2', ymin = 0, ymax = 25000, color = "orange", fill = "orange", size = 0.5, alpha=0.4) + # Our annotation layers go first!
+#  annotate("pointrange", x = '2020Q2', y = 20000, xmin = '2020Q1', xmax = '2020Q2', ymin = 0, ymax = 25000, color = "red", size = 1.5, alpha=.75) +
+  #layer_lines(size = ~Dollars/Population, stroke = "#FC4E07", alpha = 0.5) %>%  # Our two geom line (mark) layers
+  layer_lines() %>%
+#  layer_smooths(span = 1, stroke := "red") %>% # Our stats layer; ggvis actually defaults to LOESS
+#	layer_model_predictions(model = "loess", se = TRUE) %>% 
+  scale_numeric("y") %>% #, labels=scales::dollar_format()) %>%  # Use the "dollar_format()" function from scales (ggplot dep'cy)
+  scale_ordinal("x") %>% #, breaks = dates_to_show) %>% # Use the dates_to_show var we defined above to skip 20 quarters
+  layer_text(data=annotation, x=~Period, y=~Dollars, baseline=~label,   #Add our text annotations AFTER all other
+            stroke="black", fontSize=3 , angle=45) %>% #,                          #  geoms so it is on top of all other marks
+#            fontface="bold", hjust = 1) + 
+  add_title(title = "Nominal Gross Domestic Product",         #Add chart title, subtitle
+       x_lab = "Total [Billions], Per Capita, and Projection") #+ 
+#  theme(axis.text.x = element_text(angle = 45, hjust=1), #Rotate axis labels and shift to the right
+#        plot.title = element_text(hjust = 0.5),          #Center chart title
+#        plot.subtitle = element_text(hjust = 0.5))       #Center chart subtitle
+
+p
+
+```
