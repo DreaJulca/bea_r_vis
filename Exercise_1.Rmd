@@ -64,6 +64,16 @@ gdp_raw <- data[-c(1), ]
 gdp_raw
 ```
 
+## Just for fun, let's also get quarterly population estimates.
+```{r popdata}
+pop <- read.csv('data/national_population.csv')
+
+pop$Period <- paste0(substr(pop$DATE, 1, 4), 'Q', round(as.numeric(substr(pop$DATE, 6, 7))/3)+1)
+
+pop
+
+```
+
 ## Reshape the data for visualization
 
 We have already made one parsing decision that has reshaped our data by omission with our skip option.
@@ -85,12 +95,17 @@ gdp_long$Period <- gsub('X', '', gdp_long$Period, fixed = T)
 
 # For now, we really only want top line GDP--line 1.
 # We make a new data.frame from the old, ensuring our data types are correct.
+
+# Also, we can add our pop data in now; I have been kind and set it up so that the dates are the same, but usually you would want to use a join to make sure the dates match for each row.
+
 gdp <- data.frame(
   Period = as.character(gdp_long[gdp_long$Line==1,]$Period), 
-  Dollars = as.numeric(gdp_long[gdp_long$Line==1,]$Dollars) 
+  Dollars = as.numeric(gdp_long[gdp_long$Line==1,]$Dollars),
+  Population = pop$Population
 )
 
 gdp
+
 ```
 
 ## Creating Plots
@@ -105,26 +120,92 @@ plot(gdp$Period, gdp$Dollars)
 
 The base plot function returns something that's not so pretty, right?
 
-Let's take a look at the steps involved in plotting with ggplot. First, create the base object.
+Let's take a look at the steps involved in plotting with ggplot. Start by adding the base layer--the data and variable mappings you will use to represent your data. 
+
+We use "group=1" here because there is no grouping variable--no nominal labels to use as "color" scale mapping (see  example demo from slides). 
+
 
 ```{r ggplot_base}
 #Create the base layer
-p <- ggplot(gdp)
+p_0 <- ggplot(gdp, aes(x=Period, y=Dollars, group=1))
 
-#At first, this is just an empty canvas
-p
+#At first, this is just an empty canvas with axis labels and grid lines.
+p_0
 ```
 
 ### Using ggplot layers
-Then, you need to add a layer--the visual marks and channels you will use to represent your data.
+We need to add our visual marks (and marks' channel specifications), and graph themes and settings, layer by layer. 
+
+Let's actually make use of our population data--set the size of the line to Dollars/Population, and then plot regular old dollars on top of that.
+
+We immediately see that, right now, it's actually worse than base R autoplot, because we have not used any layers to modify our view.
 
 ```{r ggplot_mark}
-# We need to add our visual marks (and marks' channel specifications), and graph themes and settings, layer by layer.
-p <- p + geom_line(aes(x=Period, y=Dollars, group=1))
+p_1 <- p_0 + 
+  geom_line(aes(size = Dollars/Population), color = "#FC4E07") +
+  geom_line(size = 1.05)
 
-p
+p_1
 
 ```
 
+### statistical transformation
+We used stat smooth in our sepal example; let's do that again here, but instead of using a linear model, we'll use LOESS (locally estimated scatterplot smoothing).
 
-Right now, it's actually worse than base R autoplot, because we have not used layers to modify the 
+```{r stat_layer}
+p_2 <- p_1 +
+  stat_smooth(method = "loess")
+
+p_2
+```
+
+
+
+### Position scale layers
+Let's start by formatting our axes using scales. Because we have so many periods, suppose we want to label a quarter every 5 years instead of every quarter:
+
+```{r axis_scale_layer}
+
+dates_to_show <- gdp$Period[seq(1, length(gdp$Period), by = 20)]
+print(dates_to_show)
+
+p_3 <- p_2 + 
+  scale_y_continuous(labels=scales::dollar_format()) +  # Use the "dollar_format()" function from scales (ggplot dep'cy)
+  scale_x_discrete(breaks = dates_to_show) # Use the dates_to_show var we defined above to skip 20 quarters
+
+p_3
+
+```
+
+### Themes
+
+These axis labels still aren't great; we can use a theme layer to rotate them. While we're at it, we may as well also make some tweaks to our background and add a chart title. 
+
+```{r themes}
+p_4 <- p_3 +
+  labs(title = "Nominal Gross Domestic Product",
+       subtitle = "Total [Billions], Per Capita, and Projection") + #Add chart title, subtitle
+  theme(axis.text.x = element_text(angle = 45, hjust=1), #Rotate axis labels and shift to the right
+        plot.title = element_text(hjust = 0.5),          #Center chart title
+        plot.subtitle = element_text(hjust = 0.5))       #Center chart subtitle
+
+p_4
+```
+
+### Annotation
+
+You can add text and other visual marks freely using ggplot's layered grammar.
+
+```{r text_annotate}
+# a data frame with all the annotation info
+annotation <- data.frame(
+   Period = c("2007Q4","2009Q2", "2020Q2"),
+   Dollars = c(20000,10000, 25000),
+   label = c("Beginning of Great Recession", "End of Great Recession", "Beginning of \nCOVID Recession")
+)
+
+
+p_4 + geom_text(data=annotation, aes( x=Period, y=Dollars, label=label), 
+           color="orange", 
+           size=3 , angle=45, fontface="bold" )
+```
