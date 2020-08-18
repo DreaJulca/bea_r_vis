@@ -22,13 +22,13 @@ library(ggplot2)
 
 ## Try out the example from the slides
 ```{r slide_demo}
-p <- ggplot(iris, aes(x = Sepal.Length, y = Sepal.Width, colour = Species)) + 
+p_iris <- ggplot(iris, aes(x = Sepal.Length, y = Sepal.Width, colour = Species)) + 
 	geom_point() + 
 	stat_smooth(method = lm) + 
 	scale_x_log10() + 
 	scale_y_log10() 
 
-p
+p_iris
 
 ```
 
@@ -183,12 +183,12 @@ These axis labels still aren't great; we can use a theme layer to rotate them. W
 
 ```{r themes}
 p_4 <- p_3 +
-  labs(title = "Nominal Gross Domestic Product",
-       subtitle = "Total [Billions], Per Capita, and Projection") + #Add chart title, subtitle
+  theme_minimal() +                                      #I personally am a fan of the minimal view
+  labs(title = "Nominal Gross Domestic Product",         #Add chart title, subtitle
+       subtitle = "Total [Billions], Per Capita, and Projection") + 
   theme(axis.text.x = element_text(angle = 45, hjust=1), #Rotate axis labels and shift to the right
         plot.title = element_text(hjust = 0.5),          #Center chart title
         plot.subtitle = element_text(hjust = 0.5))       #Center chart subtitle
-
 p_4
 ```
 
@@ -201,11 +201,60 @@ You can add text and other visual marks freely using ggplot's layered grammar.
 annotation <- data.frame(
    Period = c("2007Q4","2009Q2", "2020Q2"),
    Dollars = c(20000,10000, 25000),
-   label = c("Beginning of Great Recession", "End of Great Recession", "Beginning of \nCOVID Recession")
+   label = c("Start of G.R.", "End of G.R.", "COVID Recession")
 )
 
+#Text annotation can be done several ways, including annotate(), geom_label, and geom_text()
+# Here, we have chosen to use geom_text() and an annotation data.frame corresponding to GDP vars.
+p_5 <- p_4 + 
+  geom_text(data=annotation, aes( x=Period, y=Dollars, label=label), 
+            color="black", size=3 , angle=45, 
+            fontface="bold", hjust = 1)
 
-p_4 + geom_text(data=annotation, aes( x=Period, y=Dollars, label=label), 
-           color="orange", 
-           size=3 , angle=45, fontface="bold" )
+p_5
+```
+
+We have added text, but we can also add geom annotations using annotate().
+```{r shape_annotation}
+p_6 <- p_5 + 
+  annotate("rect", xmin = '2007Q4', xmax = '2009Q2', ymin = 0, ymax = 25000, color = "orange", fill = "orange", size = 0.5, alpha=0.4)
+
+p_6
+```
+
+We can use the rect approach above, and we can also use a pointrange.
+```{r shape_annotation_2}
+p_7 <- p_6 + 
+  annotate("pointrange", x = '2020Q2', y = 20000, xmin = '2020Q1', xmax = '2020Q2', ymin = 0, ymax = 25000, color = "red", size = 1.5, alpha=0.4)
+
+p_7
+```
+
+
+The problem with the above--although it may be hard to tell--is that the shape annotations render on top of the other marks.
+We would usually want those in the background!
+
+So let's just bring everything together in one call.
+```{r finale}
+p <- ggplot(gdp, aes(x=Period, y=Dollars, group=1)) + # our data and mapping layer
+  annotate("rect", xmin = '2007Q4', xmax = '2009Q2', ymin = 0, ymax = 25000, color = "orange", fill = "orange", size = 0.5, alpha=0.4) + # Our annotation layers go first!
+  annotate("pointrange", x = '2020Q2', y = 20000, xmin = '2020Q1', xmax = '2020Q2', ymin = 0, ymax = 25000, color = "red", size = 1.5, alpha=0.4) +
+  geom_line(aes(size = Dollars/Population), color = "#FC4E07") +  # Our two geom line (mark) layers
+  geom_line(size = 1.05) +
+  stat_smooth(method = "loess") + # Our stats layer 
+  scale_y_continuous(labels=scales::dollar_format()) +  # Use the "dollar_format()" function from scales (ggplot dep'cy)
+  scale_x_discrete(breaks = dates_to_show) + # Use the dates_to_show var we defined above to skip 20 quarters
+  geom_text(data=annotation, aes( x=Period, y=Dollars, label=label),   #Add our text annotations 
+            color="black", size=3 , angle=45,                          #Add last so it is on top of all other marks!
+            fontface="bold", hjust = 1) + 
+  theme_minimal() +                                      #Wrap up with our themes. Minimal view theme must come first!
+  labs(title = "Nominal Gross Domestic Product",         #Add chart title, subtitle
+       subtitle = "Total [Billions], Per Capita, and Projection") + 
+  theme(axis.text.x = element_text(angle = 45, hjust=1), #Rotate axis labels and shift to the right
+        plot.title = element_text(hjust = 0.5),          #Center chart title
+        plot.subtitle = element_text(hjust = 0.5))       #Center chart subtitle
+
+p
+
+
 ```
