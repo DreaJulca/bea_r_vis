@@ -155,10 +155,9 @@ p <- ggvis(gdp, x=~Period, y=~Dollars) %>% # our data and mapping layer
   scale_numeric("y") %>% #, labels=scales::dollar_format()) %>%  # Use the "dollar_format()" function from scales (ggplot dep'cy)
   scale_ordinal("x") %>% #, breaks = dates_to_show) %>% # Use the dates_to_show var we defined above to skip 20 quarters
   layer_text(data=annotation, x=~Period, y=~Dollars, baseline=~label,   #Add our text annotations AFTER all other
-            stroke="black", fontSize=3 , angle=45) %>% #,                          #  geoms so it is on top of all other marks
+            fontSize=3 , angle=45) %>% #, stroke="black",                          #  geoms so it is on top of all other marks
 #            fontface="bold", hjust = 1) + 
-  add_title(title = "Nominal Gross Domestic Product",         #Add chart title, subtitle
-       x_lab = "Total [Billions], Per Capita, and Projection") #+ 
+  add_title(title = "Nominal Gross Domestic Product \nTotal [Billions], Per Capita, and Projection")         #Add chart title, subtitle  
 #  theme(axis.text.x = element_text(angle = 45, hjust=1), #Rotate axis labels and shift to the right
 #        plot.title = element_text(hjust = 0.5),          #Center chart title
 #        plot.subtitle = element_text(hjust = 0.5))       #Center chart subtitle
