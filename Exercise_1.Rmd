@@ -16,6 +16,7 @@ knitr::opts_knit$set(root.dir = WORKING_DIRECTORY)
 
 knitr::opts_chunk$set(echo = TRUE)
 
+.libPaths('\\\\serv03cl\\data\\APPS\\R\\libraries_3_6_3_C')
 #Load the ggplot2 package
 library(ggplot2)
 ```

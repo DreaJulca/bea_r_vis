@@ -18,11 +18,10 @@ knitr::opts_chunk$set(echo = TRUE)
 
 Setup some requirements
 ```{r setup, include=FALSE}
-temp_lib_path <- paste0('C:/Users/', Sys.info()[[7]], '/Documents/temp_r_lib/')
-dir.create(temp_lib_path)
-.libPaths(temp_lib_path)
-install.packages(c('remotes', 'reshape2'))
-remotes::install_github("lionel-/ggvis@fix-dplyr-1-0-0")
+.libPaths('\\\\serv03cl\\data\\APPS\\R\\libraries_3_6_3_C')
+
+#install.packages(c('remotes', 'reshape2'))
+#remotes::install_github("lionel-/ggvis@fix-dplyr-1-0-0")
 
 #Load the ggplot2 package
 library(reshape2)
@@ -121,6 +120,10 @@ p_iris <- iris %>%
     return(getTooltipVals(d))
     }) #Use HTML
 
+p_iris
+```
+
+```{r ggvis_slide_demo2}
 p_iris_smooth <- iris %>% 
   ggvis(x = ~Sepal.Length, y = ~Sepal.Width) %>%
 	layer_points() %>% 
@@ -130,7 +133,6 @@ p_iris_smooth <- iris %>%
 	scale_numeric("y", trans = "log") %>% 
   add_tooltip(getTooltipVals)
 
-p_iris
 p_iris_smooth
 
 ```
@@ -154,17 +156,17 @@ add_title <- function(vis, ..., x_lab = "X units", title = "Plot Title")
 }
 
 p <- ggvis(gdp, x=~Period, y=~Dollars) %>% # our data and mapping layer
-#  annotate("rect", xmin = '2007Q4', xmax = '2009Q2', ymin = 0, ymax = 25000, color = "orange", fill = "orange", size = 0.5, alpha=0.4) + # Our annotation layers go first!
+  layer_rects(width = band(), height = band(), stroke = "orange", fill = "orange") %>% # Our annotation layers go first!
 #  annotate("pointrange", x = '2020Q2', y = 20000, xmin = '2020Q1', xmax = '2020Q2', ymin = 0, ymax = 25000, color = "red", size = 1.5, alpha=.75) +
   #layer_lines(size = ~Dollars/Population, stroke = "#FC4E07", alpha = 0.5) %>%  # Our two geom line (mark) layers
   layer_lines() %>%
 #  layer_smooths(span = 1, stroke := "red") %>% # Our stats layer; ggvis actually defaults to LOESS
 #	layer_model_predictions(model = "loess", se = TRUE) %>% 
-  scale_numeric("y") %>% #, labels=scales::dollar_format()) %>%  # Use the "dollar_format()" function from scales (ggplot dep'cy)
-  scale_ordinal("x") %>% #, breaks = dates_to_show) %>% # Use the dates_to_show var we defined above to skip 20 quarters
   layer_text(data=annotation, x=~Period, y=~Dollars, baseline=~label,   #Add our text annotations AFTER all other
             fontSize=3 , angle=45) %>% #, stroke="black",                          #  geoms so it is on top of all other marks
 #            fontface="bold", hjust = 1) + 
+  scale_numeric("y") %>% #, labels=scales::dollar_format()) %>%  # Use the "dollar_format()" function from scales (ggplot dep'cy)
+  scale_ordinal("x") %>% #, breaks = dates_to_show) %>% # Use the dates_to_show var we defined above to skip 20 quarters
   add_title(title = "Nominal Gross Domestic Product \nTotal [Billions], Per Capita, and Projection")         #Add chart title, subtitle  
 #  theme(axis.text.x = element_text(angle = 45, hjust=1), #Rotate axis labels and shift to the right
 #        plot.title = element_text(hjust = 0.5),          #Center chart title
