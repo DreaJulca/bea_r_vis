@@ -5,18 +5,27 @@ date: "August 18, 2020"
 output: html_document
 ---
 
-```{r setup, include=FALSE}
+```{r workdir, include=FALSE}
 
 #You must change this!
 WORKING_DIRECTORY <- 'CHANGE THIS TO YOUR WORKING DIRECTORY (top level folder where you cloned git repo)'
-
 #Set working directory (also do this for knit)
 setwd(WORKING_DIRECTORY)
 knitr::opts_knit$set(root.dir = WORKING_DIRECTORY)
-
 knitr::opts_chunk$set(echo = TRUE)
 
+```
+
+Setup some requirements
+```{r setup, include=FALSE}
+temp_lib_path <- paste0('C:/Users/', Sys.info()[[7]], '/Documents/temp_r_lib/')
+dir.create(temp_lib_path)
+.libPaths(temp_lib_path)
+install.packages(c('remotes', 'reshape2'))
+remotes::install_github("lionel-/ggvis@fix-dplyr-1-0-0")
+
 #Load the ggplot2 package
+library(reshape2)
 library(ggvis)
 ```
 
@@ -72,7 +81,6 @@ Now we are going to have to change it into a "clean" format: Every column is a v
 We can do this more easily with the "reshape2" library.
 
 ```{r reshape}
-library(reshape2)
 # Melt to long format with line number and component as ID variables
 gdp_long <- melt(gdp_raw, id.vars=c('LineLine', 'X'))
 
@@ -122,8 +130,8 @@ p_iris_smooth <- iris %>%
 	scale_numeric("y", trans = "log") %>% 
   add_tooltip(getTooltipVals)
 
-
-
+p_iris
+p_iris_smooth
 
 ```
 
