@@ -142,6 +142,7 @@ p_iris_smooth
 
 ```{r modifying_ggplot}
 
+#Two options here: We either change the date format to months and read as.Date, or we use the dates as ordinal strings; the latter does not work as well with ggvis, but I will use it just to demonstrate why. 
 annotation <- data.frame(
    PeriodStart = c("2007Q4","2020Q1"),
    PeriodEnd = c("2009Q2","2020Q2"),
@@ -160,19 +161,41 @@ add_title <- function(vis, ..., x_lab = "X units", title = "Plot Title")
              ), ...)
 }
 
+
+#We will filter the data using this subset of rows
+rowsToKeep_no_annot <- (1:dim(gdp))[1:(dim(gdp)[1]) %% 12 == 0]
+
+#But we also want to make sure we have our annotation dates; we will add the index for each, and then make sure we have a unique set of row numbers, and then sort.
+rowsToKeep <- c(
+    rowsToKeep_no_annot, #Existing rows to keep
+    (1:dim(gdp)[1])[     #vector of row numbers
+      gdp$Period %in% c(as.character(annotation$PeriodStart), as.character(annotation$PeriodEnd)) #check if period in our annotations table start and end dates
+      ] 
+    ) %>% unique %>% sort #ensure it is unique and sorted
+
+#And we want to use our annotations with a tooltip this time
+getAnnotTooltips <- function(d){
+  message(paste(names(d), collapse = ', ')) #message--showing you the columns of d 
+  message(paste(d, collapse = ', ')) #message--showing you the values of d 
+
+  #Uses HTML for rendering tooltip
+  return(paste0('<b>', d$label, '</b><br>(', d$PeriodStart, ' - ', d$PeriodEnd))
+}
+
 p <- ggvis() %>% # our data and mapping layer
-  # Our annotation layer goes first!
-  layer_paths(data=gdp, x=~Period, y=~Dollars) %>%
-    layer_rects(data=annotation, x=~PeriodStart, x2=~PeriodEnd, y=~DollarsMin, y2=~DollarsMax) %>%
-#  layer_smooths(span = 1, stroke := "red") %>% # Our stats layer; ggvis actually defaults to LOESS
-#	layer_model_predictions(model = "loess", se = TRUE) %>% 
-  layer_text(data=annotation, x=~PeriodStart, y=~DollarsMax, #baseline=~label,   #Add our text annotations AFTER all other
-            fontSize=3 , angle=45) %>% 
-  scale_ordinal("x") %>% 
+  layer_paths(data=gdp[rowsToKeep,], x=~Period, y=~Dollars) %>%
+  add_axis(
+    'x', 
+    properties = axis_props(
+      labels = list(angle=90, fontSize = 10)
+  )) %>%
+  add_axis('y', title='Nominal Dollars') %>%
+  scale_ordinal("x", domain=as.character(gdp$Period)[rowsToKeep]) %>%
+    layer_rects(data=annotation, x=~PeriodStart, x2=~PeriodEnd, y=~DollarsMin, y2=~DollarsMax, fillOpacity:=0.5, fill:="orange", stroke:=NA, opacity:=~label) %>% #We include opacity as label just to keep our label var for tooltip
+  add_tooltip(function(d){
+    return(getAnnotTooltips(d))
+  })  %>%
   add_title(title = "Nominal Gross Domestic Product \nTotal [Billions], Per Capita, and Projection")         #Add chart title, subtitle  
-#  theme(axis.text.x = element_text(angle = 45, hjust=1), #Rotate axis labels and shift to the right
-#        plot.title = element_text(hjust = 0.5),          #Center chart title
-#        plot.subtitle = element_text(hjust = 0.5))       #Center chart subtitle
 
 p
 
