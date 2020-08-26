@@ -107,7 +107,10 @@ gdp
 ```{r ggvis_slide_demo}
 
 getTooltipVals <- function(d){
-   #Uses HTML
+  message(paste(names(d), collapse = ', ')) #message--showing you the columns of d 
+  message(paste(d, collapse = ', ')) #message--showing you the values of d 
+
+  #Uses HTML for rendering tooltip
   return(paste0('Species: ', d$Species, '<br>Sepal Length: ', d$Sepal.Length, '<br>Sepal Width: ', d$Sepal.Width))
 }
 
@@ -138,12 +141,14 @@ p_iris_smooth
 ```
 
 ```{r modifying_ggplot}
-annotation <- data.frame(
-   Period = c("2007Q4","2009Q2", "2020Q2"),
-   Dollars = c(20000,10000, 25000),
-   label = c("Start of G.R.", "End of G.R.", "COVID Recession")
-)
 
+annotation <- data.frame(
+   PeriodStart = c("2007Q4","2020Q1"),
+   PeriodEnd = c("2009Q2","2020Q2"),
+   DollarsMin = c(0,0),
+   DollarsMax = c(max(gdp$Dollars),max(gdp$Dollars)),
+   label = c("Great Recession", "COVID Recession")
+)
 
 add_title <- function(vis, ..., x_lab = "X units", title = "Plot Title") 
 {
@@ -155,18 +160,15 @@ add_title <- function(vis, ..., x_lab = "X units", title = "Plot Title")
              ), ...)
 }
 
-p <- ggvis(gdp, x=~Period, y=~Dollars) %>% # our data and mapping layer
-  layer_rects(width = band(), height = band(), stroke = "orange", fill = "orange") %>% # Our annotation layers go first!
-#  annotate("pointrange", x = '2020Q2', y = 20000, xmin = '2020Q1', xmax = '2020Q2', ymin = 0, ymax = 25000, color = "red", size = 1.5, alpha=.75) +
-  #layer_lines(size = ~Dollars/Population, stroke = "#FC4E07", alpha = 0.5) %>%  # Our two geom line (mark) layers
-  layer_lines() %>%
+p <- ggvis() %>% # our data and mapping layer
+  # Our annotation layer goes first!
+  layer_paths(data=gdp, x=~Period, y=~Dollars) %>%
+    layer_rects(data=annotation, x=~PeriodStart, x2=~PeriodEnd, y=~DollarsMin, y2=~DollarsMax) %>%
 #  layer_smooths(span = 1, stroke := "red") %>% # Our stats layer; ggvis actually defaults to LOESS
 #	layer_model_predictions(model = "loess", se = TRUE) %>% 
-  layer_text(data=annotation, x=~Period, y=~Dollars, baseline=~label,   #Add our text annotations AFTER all other
-            fontSize=3 , angle=45) %>% #, stroke="black",                          #  geoms so it is on top of all other marks
-#            fontface="bold", hjust = 1) + 
-  scale_numeric("y") %>% #, labels=scales::dollar_format()) %>%  # Use the "dollar_format()" function from scales (ggplot dep'cy)
-  scale_ordinal("x") %>% #, breaks = dates_to_show) %>% # Use the dates_to_show var we defined above to skip 20 quarters
+  layer_text(data=annotation, x=~PeriodStart, y=~DollarsMax, #baseline=~label,   #Add our text annotations AFTER all other
+            fontSize=3 , angle=45) %>% 
+  scale_ordinal("x") %>% 
   add_title(title = "Nominal Gross Domestic Product \nTotal [Billions], Per Capita, and Projection")         #Add chart title, subtitle  
 #  theme(axis.text.x = element_text(angle = 45, hjust=1), #Rotate axis labels and shift to the right
 #        plot.title = element_text(hjust = 0.5),          #Center chart title
