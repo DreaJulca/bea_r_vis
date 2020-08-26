@@ -1,0 +1,145 @@
+---
+title: "Visualization in R Exercise 1: ggplot2"
+author: "Andrea Batch"
+date: "August 10, 2020"
+output: html_document
+---
+
+
+```{r change_wd, include=FALSE}
+#You must change this!
+WORKING_DIRECTORY <- 'CHANGE THIS TO YOUR WORKING DIRECTORY (top level folder where you cloned git repo)'
+```
+
+```{r setup, include=FALSE}
+#Also note: need to restart R if you have run previous examples, as they will change your working directory.
+
+#Set working directory (also do this for knit)
+setwd(WORKING_DIRECTORY)
+knitr::opts_knit$set(root.dir = WORKING_DIRECTORY)
+
+
+knitr::opts_chunk$set(echo = TRUE)
+
+library(reshape2)
+library(utils)
+library(rgdal)
+library(shiny)
+library(leaflet)
+library(sf)
+library(dplyr)
+```
+
+## Load and reshape dataset
+
+We want to start by loading our dataset--just use the same dataset as we did in first R exercise.
+
+```{r getStateData}
+state_gdp_raw <- read.csv('data/state_gdp.csv', skip=4)
+
+#actually no need to do the renaming, although we will strip the punctuation
+names(state_gdp_raw) <- gsub('[[:punct:]]', '', names(state_gdp_raw))
+
+# Melt to long format with line number and component as ID variables
+state_gdp_long <- melt(state_gdp_raw, id.vars=c('GeoFips', 'GeoName'))
+
+# Now is a good time to rename our variables
+names(state_gdp_long) <- c('GeoFips', 'GeoName', 'Period', 'Dollars')
+
+# Remove the "X" from the period
+state_gdp_long$Period <- gsub('X', '', state_gdp_long$Period, fixed = T)
+
+# For now, we really only want top line GDP--line 1.
+# We make a new data.frame from the old, ensuring our data types are correct.
+
+# Also, we can add our pop data in now; I have been kind and set it up so that the dates are the same, but usually you would want to use a join to make sure the dates match for each row.
+
+#Go ahead and order by FIPS
+state_gdp_long <- state_gdp_long[order(state_gdp_long$GeoFips),]
+
+state_gdp <- data.frame(
+  FIPS = as.character(state_gdp_long$GeoFips),
+  State = as.character(state_gdp_long$GeoName),
+  Period = as.character(state_gdp_long$Period), 
+  Dollars = as.numeric(state_gdp_long$Dollars)
+)
+
+state_gdp
+
+#Population less useful in this instance; you may opt to get and add state-level population data yourself.
+
+```
+
+## I will be using the Census 2018 5m shapefile, but any state-level shapefile, raster, or GeoJSON/TopoJSON should do so long as you properly import it as an sp object.
+
+```{r load_shapefile}
+unzip("data/cb_2018_us_state_5m.zip", exdir="data/shapedata")
+zipmap <- readOGR(dsn = "data/shapedata", layer = "cb_2018_us_state_5m")
+
+```
+
+## Connecting your data to sp
+Need to create a common key using FIPS codes
+
+```{r join_data}
+
+zipmap@data$GeoFIPS <- paste0(zipmap@data$GEOID, '000')
+
+```
+
+## Create shiny app
+```{r shinyapp}
+
+    ui <- bootstrapPage(
+      tags$style(type = "text/css", "html, body {width:100%;height:100%}"),
+      leafletOutput("map", width = "100%", height = "100%"),
+      absolutePanel(top = 10, right = 10,
+                    style="z-index:500;", # legend over my map (map z = 400)
+                    tags$h3("map"), 
+                    sliderInput("period", paste0("Quarter from ", sort(state_gdp$Period)[1]),
+                                1,
+                                length(unique(state_gdp$Period)),
+                                value = unique(state_gdp$Period),
+                                step = 1,
+                                sep = ""
+                    )
+    )
+    )
+
+    server <- function(input, output, session) {
+      message(input);
+      # reactive filtering data from UI
+
+      mapdata <- reactive({
+        dates_in_range <- sort(unique(state_gdp$Period))[input$period[1]:input$period[2]]
+        range_gdp_data <- state_gdp[state_gdp$Period %in% dates_in_range,]
+        range_gdp_data_sorted <- range_gdp_data[order(-as.numeric(range_gdp_data$Dollars)),]
+        
+        top_fips_for_range <- unique(range_gdp_data_sorted$FIPS)[1:10]
+        
+        #Print the top ten FIPS by state GDP for the range selected 
+        print(top_fips_for_range)
+        
+        filtmap <- zipmap[(zipmap@data$GeoFIPS %in% top_fips_for_range),]
+        #print(filtmap)
+        return(filtmap)
+            
+      })
+      
+      observe({
+        leafletProxy('map', data=mapdata()) %>%
+          clearShapes()%>%
+            addPolygons(stroke = FALSE, smoothFactor = 0.3, fillOpacity = 1,
+              fillColor = '#e39842' #~pal(log10())
+            )
+      })
+
+      # static background map
+      output$map <- renderLeaflet({
+        leaflet() %>%
+          addTiles() 
+      })  
+    }
+
+    shinyApp(ui, server)
+```
