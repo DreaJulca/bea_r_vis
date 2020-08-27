@@ -9,19 +9,20 @@ output: html_document
 
 #You must change this!
 WORKING_DIRECTORY <- 'CHANGE THIS TO YOUR WORKING DIRECTORY (top level folder where you cloned git repo)'
-#Set working directory (also do this for knit)
-setwd(WORKING_DIRECTORY)
-knitr::opts_knit$set(root.dir = WORKING_DIRECTORY)
-knitr::opts_chunk$set(echo = TRUE)
+
+#Not changed
+.libPaths('\\\\serv03cl\\data\\APPS\\R\\libraries_3_6_3_C')
 
 ```
 
 Setup some requirements
 ```{r setup, include=FALSE}
-.libPaths('\\\\serv03cl\\data\\APPS\\R\\libraries_3_6_3_C')
+#Set working directory (also do this for knit)
+setwd(WORKING_DIRECTORY)
+knitr::opts_knit$set(root.dir = WORKING_DIRECTORY)
+knitr::opts_chunk$set(echo = TRUE)
 
-#install.packages(c('remotes', 'reshape2'))
-#remotes::install_github("lionel-/ggvis@fix-dplyr-1-0-0")
+#remotes::install_github("lionel-/ggvis@fix-dplyr-1-0-0") #Not run
 
 #Load the ggplot2 package
 library(reshape2)

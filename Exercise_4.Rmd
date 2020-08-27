@@ -9,6 +9,9 @@ output: html_document
 ```{r change_wd, include=FALSE}
 #You must change this!
 WORKING_DIRECTORY <- 'CHANGE THIS TO YOUR WORKING DIRECTORY (top level folder where you cloned git repo)'
+
+#Not changed (note: different for exercise 4 than for 2 and 3)
+.libPaths('\\\\serv03cl\\data\\APPS\\R\\libraries_3_6_3_A')
 ```
 
 ```{r setup, include=FALSE}

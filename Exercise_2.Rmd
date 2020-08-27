@@ -5,28 +5,32 @@ date: "August 10, 2020"
 output: html_document
 ---
 
-```{r setup, include=FALSE}
+```{r change_wd, include=FALSE}
 
 #You must change this!
-WORKING_DIRECTORY <- 'CHANGE THIS TO YOUR WORKING DIRECTORY (top level folder where you cloned git repo)'
+WORKING_DIRECTORY <- 'CHANGE THIS TO YOUR WORKING DIRECTORY (top level folder where you cloned github repo)'
 
+#Not changed
+.libPaths('\\\\serv03cl\\data\\APPS\\R\\libraries_3_6_3_C')
+```
+
+```{r setup, include=FALSE}
 #Set working directory (also do this for knit)
 setwd(WORKING_DIRECTORY)
 knitr::opts_knit$set(root.dir = WORKING_DIRECTORY)
 
 knitr::opts_chunk$set(echo = TRUE)
 
-.libPaths('\\\\serv03cl\\data\\APPS\\R\\libraries_3_6_3_C')
 #Load the ggplot2 package
 library(ggplot2)
 ```
 
 ## Try out the example from the slides
 ```{r slide_demo}
-p_iris <- ggplot(iris, aes(x = Sepal.Length, y = Sepal.Width, colour = Species)) + 
-	geom_point() + 
-	stat_smooth(method = lm) + 
-	scale_x_log10() + 
+p_iris <- ggplot(iris, aes(x = Sepal.Length, y = Sepal.Width, colour = Species)) +   #Base ggplot layer, data, mappings
+	geom_point() +                                                                     #Visual marks layer
+	stat_smooth(method = lm) +                                                         #Statistical transform (lm)
+	scale_x_log10() +                                                                  #Position scales & coordinate system
 	scale_y_log10() 
 
 p_iris
