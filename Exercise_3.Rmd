@@ -27,6 +27,7 @@ knitr::opts_chunk$set(echo = TRUE)
 #Load the ggplot2 package
 library(reshape2)
 library(ggvis)
+library(dplyr)
 ```
 
 
