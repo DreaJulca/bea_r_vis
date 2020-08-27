@@ -265,7 +265,7 @@ p
 ```
 
 ```{r Activity_getStateData}
-state_gdp_raw <- read.csv('data/state_gdp.csv', skip=4)
+state_gdp_raw <- read.csv('data/state_ind_gdp.csv', skip=4)
 #Now look at the data
 state_gdp_raw
 
@@ -278,10 +278,10 @@ names(state_gdp_raw) <- gsub('[[:punct:]]', '', names(state_gdp_raw))
 ```{r Activity_reshape}
 library(reshape2)
 # Melt to long format with line number and component as ID variables
-state_gdp_long <- melt(state_gdp_raw, id.vars=c('GeoFips', 'GeoName'))
+state_gdp_long <- melt(state_gdp_raw, id.vars=c('GeoFips', 'GeoName', 'LineCode', 'Description'))
 
 # Now is a good time to rename our variables
-names(state_gdp_long) <- c('GeoFips', 'GeoName', 'Period', 'Dollars')
+names(state_gdp_long) <- c('GeoFips', 'GeoName', 'LineCode', 'Description', 'Period', 'Dollars')
 
 # Remove the "X" from the period
 state_gdp_long$Period <- gsub('X', '', state_gdp_long$Period, fixed = T)
@@ -297,13 +297,15 @@ state_gdp_long <- state_gdp_long[order(state_gdp_long$GeoFips),]
 state_gdp <- data.frame(
   FIPS = as.character(state_gdp_long$GeoFips),
   State = as.character(state_gdp_long$GeoName),
+  LineCode = as.character(state_gdp_long$LineCode),
+  Description = as.character(state_gdp_long$Description),
   Period = as.character(state_gdp_long$Period), 
   Dollars = as.numeric(state_gdp_long$Dollars),
   US_Population = as.character(pop$Population[pop$Period %in% as.character(state_gdp_long$Period)])
 )
 
 state_gdp
-
+#We can see that there are a few things we need to clean up here before we visualize.
 #Population less useful in this instance; you may opt to get and add state-level population data yourself.
 ```
 
