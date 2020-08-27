@@ -10,8 +10,8 @@ output: html_document
 #You must change this!
 WORKING_DIRECTORY <- 'CHANGE THIS TO YOUR WORKING DIRECTORY (top level folder where you cloned github repo)'
 
-#Not changed
-.libPaths('\\\\serv03cl\\data\\APPS\\R\\libraries_3_6_3_C')
+#Not changed from default but different from next exercise; included in case you want to backtrack
+.libPaths('\\\\serv03cl\\data\\APPS\\R\\libraries_3_6_3_A')
 ```
 
 ```{r setup, include=FALSE}
@@ -308,4 +308,13 @@ state_gdp
 #We can see that there are a few things we need to clean up here before we visualize.
 #Population less useful in this instance; you may opt to get and add state-level population data yourself.
 ```
+```{r your_solution}
+#Remember to clean up junk rows in dataset
 
+#Use facet_wrap to visualize industry / state combinations
+# - Can wrap by state and show a few industries per facet, or wrap by industry and show a few states per facet
+
+#Hint: Can put data in geom_[mark type](data, mapping=aes(...)) layer instead of ggplot(data, aes(...)) layer
+
+#Minimal working example is acceptable--does not need to have annotations or smoothing--but you can add more if you finish before others
+```

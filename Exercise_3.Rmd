@@ -10,7 +10,7 @@ output: html_document
 #You must change this!
 WORKING_DIRECTORY <- 'CHANGE THIS TO YOUR WORKING DIRECTORY (top level folder where you cloned git repo)'
 
-#Not changed
+#Different from other two due to ggvis package conflict
 .libPaths('\\\\serv03cl\\data\\APPS\\R\\libraries_3_6_3_C')
 
 ```
